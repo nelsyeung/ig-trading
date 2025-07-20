@@ -1,0 +1,7 @@
+/* The "On this page" sidebar nests: page > Classes/Exceptions > class name >
+   members (fields/methods). Keep class names in the sidebar, but hide the
+   members nested under them - the page content itself is unaffected, this only
+   trims the sidebar summary. */
+.toc-tree li li li > ul {
+    display: none;
+}
