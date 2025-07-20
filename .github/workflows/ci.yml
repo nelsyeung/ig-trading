@@ -1,0 +1,129 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  UV_VERSION: "0.12.17"
+  MARKDOWNLINT_CLI2_VERSION: "0.23.2"
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: hadolint/hadolint-action@v3.5.0
+        with:
+          dockerfile: Dockerfile
+      - run: >
+          npm install --global markdownlint-cli2@"$MARKDOWNLINT_CLI2_VERSION"
+      - run: markdownlint-cli2 README.md CHANGELOG.md
+      - uses: astral-sh/setup-uv@v10.1.0
+        with:
+          enable-cache: true
+          version: ${{ env.UV_VERSION }}
+      - run: uv sync --locked
+      - run: uv run ruff check
+
+  type-check:
+    needs: lint
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: &python-versions
+          - "3.10"
+          - "3.11"
+          - "3.12"
+          - "3.13"
+          - "3.14"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.1.0
+        with:
+          enable-cache: true
+          version: ${{ env.UV_VERSION }}
+      - run: uv sync --locked --python ${{ matrix.python-version }}
+      - run: uv run --python ${{ matrix.python-version }} mypy .
+
+  unit-test:
+    needs:
+      - lint
+      - type-check
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: *python-versions
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.1.0
+        with:
+          enable-cache: true
+          version: ${{ env.UV_VERSION }}
+      - run: uv sync --locked --python ${{ matrix.python-version }}
+      - run: >
+          uv run --python ${{ matrix.python-version }}
+          coverage run -m pytest tests/unit
+      - run: uv run --python ${{ matrix.python-version }} coverage report
+
+  integration-test:
+    needs:
+      - lint
+      - type-check
+      - unit-test
+    runs-on: ubuntu-latest
+    # The whole suite runs against one shared IG demo account (see
+    # tests/integration/conftest.py), so overlapping runs must not hit it at
+    # the same time. Queue test runs across workflow runs instead of the
+    # usual cancel-in-progress behaviour.
+    concurrency:
+      group: ci-integration-test-${{ github.repository }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.1.0
+        with:
+          enable-cache: true
+          version: ${{ env.UV_VERSION }}
+      - run: uv sync --locked
+      - run: uv run coverage run -m pytest tests/integration
+        env:
+          IG_API_KEY: ${{ secrets.IG_API_KEY }}
+          IG_IDENTIFIER: ${{ secrets.IG_IDENTIFIER }}
+          IG_PASSWORD: ${{ secrets.IG_PASSWORD }}
+      - run: uv run coverage report
+
+  sphinx:
+    needs:
+      - integration-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.1.0
+        with:
+          enable-cache: true
+          version: ${{ env.UV_VERSION }}
+      - run: uv sync --locked
+      - run: uv run sphinx-build --fail-on-warning docs public
+
+  build:
+    needs:
+      - integration-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.1.0
+        with:
+          enable-cache: true
+          version: ${{ env.UV_VERSION }}
+      - run: uv build

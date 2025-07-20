@@ -1,0 +1,22 @@
+services:
+  vim:
+    build:
+      context: .
+      target: vim
+    environment:
+      - DISPLAY
+    volumes:
+      - ./:/workdir
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - config:/home/ubuntu/.config
+      - venv:/workdir/.venv
+      - ~/.claude.json:/home/ubuntu/.claude.json
+      - ~/.claude:/home/ubuntu/.claude
+      - ~/.gitconfig:/home/ubuntu/.gitconfig
+      - ~/.ssh:/home/ubuntu/.ssh
+      - ~/.vim:/home/ubuntu/.vim
+      - ~/.vimrc:/home/ubuntu/.vimrc
+
+volumes:
+  config:
+  venv:

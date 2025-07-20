@@ -1,0 +1,43 @@
+"""``/markets`` v1 API models."""
+
+from _ig_trading.markets.v1 import (
+    Currency,
+    DealingRule,
+    DealingRules,
+    ExpiryDetails,
+    Instrument,
+    MarginDepositBands,
+    Market,
+    MarketOrderPreference,
+    MarketOverview,
+    Markets,
+    MarketTime,
+    OpeningHours,
+    RolloverDetails,
+    SizeOfTradeUnit,
+    SlippageFactor,
+    Snapshot,
+    TrailingStopsPreference,
+    Unit,
+)
+
+__all__ = (
+    "Currency",
+    "DealingRule",
+    "DealingRules",
+    "ExpiryDetails",
+    "Instrument",
+    "MarginDepositBands",
+    "Market",
+    "MarketOrderPreference",
+    "MarketOverview",
+    "MarketTime",
+    "Markets",
+    "OpeningHours",
+    "RolloverDetails",
+    "SizeOfTradeUnit",
+    "SlippageFactor",
+    "Snapshot",
+    "TrailingStopsPreference",
+    "Unit",
+)
